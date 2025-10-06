@@ -1,0 +1,189 @@
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    environment:
+      SEEKER_SERVER_URL: ${SEEKER_SERVER_URL:-}
+      SEEKER_PROJECT_KEY: api-gateway
+      SEEKER_APP_NAME: api-gateway
+      SEEKER_ENV: ${SEEKER_ENV:-dev}
+      JAVA_OPTS: ${JAVA_OPTS:-"-Xms256m -Xmx512m"}
+    image: api-gateway:latest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "curl -fsS http://localhost:5860/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5860:5860"   
+    depends_on:
+      - keycloak
+      - config-server
+      - discovery-server
+      - product-service
+      - shopping-cart-service
+      - user-service
+      - postgres
+
+  config-server:
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    environment:
+      SEEKER_SERVER_URL: ${SEEKER_SERVER_URL:-}
+      SEEKER_PROJECT_KEY: config-server
+      SEEKER_APP_NAME: config-server
+      SEEKER_ENV: ${SEEKER_ENV:-dev}
+      JAVA_OPTS: ${JAVA_OPTS:-"-Xms256m -Xmx512m"}
+    image: config-server:latest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "curl -fsS http://localhost:5859/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5859:5859"
+    depends_on:
+      - discovery-server
+
+  discovery-server:
+    build:
+      context: ./discovery-server
+      dockerfile: Dockerfile
+    environment:
+      SEEKER_SERVER_URL: ${SEEKER_SERVER_URL:-}
+      SEEKER_PROJECT_KEY: discovery-server
+      SEEKER_APP_NAME: discovery-server
+      SEEKER_ENV: ${SEEKER_ENV:-dev}
+      JAVA_OPTS: ${JAVA_OPTS:-"-Xms256m -Xmx512m"}
+    image: discovery-server:latest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "curl -fsS http://localhost:8761/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "8761:8761"
+
+  product-service:
+    build:
+      context: ./product-service
+      dockerfile: Dockerfile
+    image: product-service:latest
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "curl -fsS http://localhost:5861/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    ports:
+      - "5861:5861"
+    depends_on:
+      - discovery-server
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: admin
+      SEEKER_SERVER_URL: ${SEEKER_SERVER_URL:-}
+      SEEKER_PROJECT_KEY: product-server
+      SEEKER_APP_NAME: product-server
+      SEEKER_ENV: ${SEEKER_ENV:-dev}
+      JAVA_OPTS: ${JAVA_OPTS:-"-Xms256m -Xmx512m"}
+
+  shopping-cart-service:
+    build:
+      context: ./shopping-cart-service
+      dockerfile: Dockerfile
+    image: shopping-cart-service:latest
+    ports:
+      - "5863:5863"
+    depends_on:
+      - discovery-server
+      - postgres
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "curl -fsS http://localhost:5863/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: admin
+      SEEKER_SERVER_URL: ${SEEKER_SERVER_URL:-}
+      SEEKER_PROJECT_KEY: shopping-cart-server
+      SEEKER_APP_NAME: shopping-cart-server
+      SEEKER_ENV: ${SEEKER_ENV:-dev}
+      JAVA_OPTS: ${JAVA_OPTS:-"-Xms256m -Xmx512m"}
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    image: user-service:latest
+    ports:
+      - "5865:5865"
+    depends_on:
+      - discovery-server
+      - postgres
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "curl -fsS http://localhost:5865/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: admin
+      SEEKER_SERVER_URL: ${SEEKER_SERVER_URL:-}
+      SEEKER_PROJECT_KEY: user-server
+      SEEKER_APP_NAME: user-server
+      SEEKER_ENV: ${SEEKER_ENV:-dev}
+      JAVA_OPTS: ${JAVA_OPTS:-"-Xms256m -Xmx512m"}
+
+  postgres:
+    image: postgres:latest
+    platform: linux/amd64
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "6543:5432"
+
+  keycloak-mysql:
+    container_name: keycloak-mysql
+    image: mysql:5.7
+    platform: linux/amd64
+    volumes:
+      - ./mysql_keycloak_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: keycloak
+      MYSQL_USER: keycloak
+      MYSQL_PASSWORD: password
+
+  keycloak:
+    container_name: keycloak
+    image: quay.io/keycloak/keycloak:23.0.3
+    command: [ "start-dev", "--import-realm" ]
+    depends_on:
+      - keycloak-mysql
+    environment:
+      DB_VENDOR: MYSQL
+      DB_ADDR: keycloak-mysql
+      DB_DATABASE: keycloak
+      DB_USER: keycloak
+      DB_PASSWORD: password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8989:8989"
+    volumes:
+      - ./keycloak-realms/:/opt/keycloak/data/import/
