@@ -1,5 +1,9 @@
 1. Sơ đồ liên kết các thành phần
 ```mermaid
+---
+config:
+  layout: elk
+---
 graph TD
     A[actions.sh] -->|Sourced| B[environment/set_up.sh]
     A -->|Calls check_docker| C[environment/check_up.sh]
