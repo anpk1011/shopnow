@@ -1,10 +1,5 @@
 1. Sơ đồ liên kết các thành phần
 ```mermaid
----
-config:
-  layout: elk
-  theme: dark
----
 graph TD
     A[actions.sh] -->|Sourced| B[environment/set_up.sh]
     A -->|Calls check_docker| C[environment/check_up.sh]
@@ -59,29 +54,34 @@ Chi tiết các mối liên kết:
 2.  Quy trình cài đặt
 ```mermaid
 graph TD
-    %% Entry Point
     A[User/Admin] -->|Chạy thủ công| B{Quy trình cài đặt}
-    %% Manual Installation Steps
-    subgraph "Cài đặt thủ công (Selective Manual Install)"
+    subgraph install["Cài đặt thủ công (Selective Manual Install)"]
         B --> B1[Tạo User: derscanner]
         B --> B2[Chuẩn bị thư mục: /opt/derscanner]
         B --> B3[Load Docker Images: images/*.tar.gz]
-        B --> B4[Chạy: ./changelogs binary]
+        B --> B4["Chạy: ./changelogs binary"]
     end
-    %% Configuration & Runtime
-    subgraph "Cấu hình & Vận hành"
+    subgraph config["Cấu hình & Vận hành"]
         B2 --> C1[configs/ *.env]
         B2 --> C2[dast.compose.yml]
-        C2 -->|Định nghĩa Network| N[ast-bridge: 10.111.222.0/24]
+        C2 -->|Định nghĩa Network| N["ast-bridge: 10.111.222.0/24"]
         C2 -->|Quản lý| D1[Container: zap]
         C2 -->|Quản lý| D2[Container: dast-daemon]
     end
-    %% Service Integration
-    subgraph "Hệ thống Systemd"
+    subgraph systemd["Hệ thống Systemd"]
         S[derscanner-dast.service] -->|Lệnh khởi chạy| C2
     end
-    %% Logs
-    D2 -->|Ghi log| L[/opt/derscanner/.../logs]
+    D2 -->|Ghi log| L["/opt/derscanner/.../logs"]
+    classDef processBox stroke:#818cf8,fill:#eef2ff
+    classDef decision stroke:#fb923c,fill:#fff7ed
+    classDef config stroke:#2dd4bf,fill:#f0fdfa
+    classDef service stroke:#a78bfa,fill:#f5f3ff
+    classDef output stroke:#4ade80,fill:#f0fdf4
+    class A,B1,B2,B3,B4 processBox
+    class B decision
+    class C1,C2,N,D1,D2 config
+    class S service
+    class L output
 ```
 
  Chi tiết các mối liên kết:
