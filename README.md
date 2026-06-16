@@ -1,4 +1,5 @@
 1. Sơ đồ liên kết các thành phần
+```mermaid
 ---
 config:
   layout: elk
@@ -33,6 +34,7 @@ graph TD
     J -->|Depends on| T7
     T7 -->|Uses| D
     T7 -->|Uses| G
+```
 
 Chi tiết các mối liên kết:
 
@@ -55,6 +57,7 @@ Chi tiết các mối liên kết:
        * Các cấu hình nhạy cảm nằm trong configs/zap.env và configs/dast-daemon.env.
 
 2.  Quy trình cài đặt
+```mermaid
 graph TD
     %% Entry Point
     A[User/Admin] -->|Chạy thủ công| B{Quy trình cài đặt}
@@ -79,6 +82,7 @@ graph TD
     end
     %% Logs
     D2 -->|Ghi log| L[/opt/derscanner/.../logs]
+```
 
  Chi tiết các mối liên kết:
    * Dịch vụ (Systemd) & Docker Compose: File derscanner-dast.service điều khiển lệnh docker compose -f dast.compose.yml up. Nó đảm bảo DAST luôn khởi động cùng hệ thống.
@@ -89,6 +93,7 @@ graph TD
 
   Sử dụng phương pháp này khi VM của bạn đã có sẵn Docker để tránh bị script của hãng ghi đè cấu hình hệ thống.
 
+```bash
     1 # 1. Tạo user và cấu trúc thư mục
     2 sudo useradd -U -m -d /opt/derscanner -s /bin/bash derscanner || true
     3 sudo mkdir -p /opt/derscanner/core/dast/services/dast-daemon/logs
@@ -111,11 +116,12 @@ graph TD
    20 # 5. Khởi chạy
    21 sudo systemctl daemon-reload
    22 sudo systemctl enable --now derscanner-dast.service
+```
 
 4. Hướng dẫn Gỡ bỏ (Uninstall)
 
   Để xóa sạch hoàn toàn dấu vết của DerScanner DAST, hãy thực hiện các lệnh sau:
-
+```bash
     1 # 1. Dừng và xóa dịch vụ
     2 sudo systemctl stop derscanner-dast.service
     3 sudo systemctl disable derscanner-dast.service
@@ -134,8 +140,7 @@ graph TD
    16 sudo rm -rf /opt/derscanner
    17 sudo rm -rf /var/log/derscanner
    18 sudo rm -f /tmp/derscanner_dast.log
-
-  ---
+```
 
 5. Giải thích các script của hãng
 A. actions.sh (The Orchestrator - Kịch bản điều phối)
